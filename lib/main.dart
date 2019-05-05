@@ -1,5 +1,6 @@
 import 'package:flight_ticket_app/custom_app_bar.dart';
 import 'package:flight_ticket_app/custom_shape_clipper.dart';
+import 'package:flight_ticket_app/flight_list.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -26,11 +27,15 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       bottomNavigationBar: CustomAppBar(),
-      body: Column(
-        children: <Widget>[
-          HomeScreenTopPart(),
-          homeScreenBottomPart,
-        ],
+      body: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: Column(
+          children: <Widget>[
+            HomeScreenTopPart(),
+            homeScreenBottomPart,
+            homeScreenBottomPart,
+          ],
+        ),
       ),
     );
   }
@@ -151,7 +156,16 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                         suffixIcon: Material(
                           elevation: 2.0,
                           borderRadius: BorderRadius.all(Radius.circular(30.0)),
-                          child: Icon(Icons.search, color: Colors.black),
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          FlightListingScreen()));
+                            },
+                            child: Icon(Icons.search, color: Colors.black),
+                          ),
                         ),
                         border: InputBorder.none,
                       ),
