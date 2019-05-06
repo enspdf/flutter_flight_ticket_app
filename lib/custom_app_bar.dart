@@ -41,7 +41,7 @@ class CustomAppBar extends StatelessWidget {
       elevation: 10.0,
       child: BottomNavigationBar(
         items: bottomBarItems,
-        type: BottomNavigationBarType.shifting,
+        type: BottomNavigationBarType.fixed,
       ),
     );
   }

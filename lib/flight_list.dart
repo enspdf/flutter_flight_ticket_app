@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flight_ticket_app/custom_shape_clipper.dart';
 import 'package:flight_ticket_app/main.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +6,22 @@ import 'package:flutter/material.dart';
 final Color discountBackgroundColor = Color(0xFFFFE08D);
 final Color flightBorderColor = Color(0xFFE6E6E6);
 final Color chipBackgroundColor = Color(0xFFF6F6F6);
+
+class InheritedFlightListing extends InheritedWidget {
+  final String toLocation, fromLocation;
+
+  InheritedFlightListing({
+    this.toLocation,
+    this.fromLocation,
+    Widget child,
+  }) : super(child: child);
+
+  @override
+  bool updateShouldNotify(InheritedWidget oldWidget) => true;
+
+  static InheritedFlightListing of(BuildContext context) =>
+      context.inheritFromWidgetOfExactType(InheritedFlightListing);
+}
 
 class FlightListingScreen extends StatelessWidget {
   @override
@@ -55,18 +72,13 @@ class FlightListingBottomPart extends StatelessWidget {
           SizedBox(
             height: 10.0,
           ),
-          ListView(
-            shrinkWrap: true,
-            physics: ClampingScrollPhysics(),
-            scrollDirection: Axis.vertical,
-            children: <Widget>[
-              FlightCard(),
-              FlightCard(),
-              FlightCard(),
-              FlightCard(),
-              FlightCard(),
-              FlightCard(),
-            ],
+          StreamBuilder(
+            stream: Firestore.instance.collection('deals').snapshots(),
+            builder: (context, snapshot) {
+              return !snapshot.hasData
+                  ? Center(child: CircularProgressIndicator())
+                  : _buildDealsList(context, snapshot.data.documents);
+            },
           ),
         ],
       ),
@@ -74,7 +86,45 @@ class FlightListingBottomPart extends StatelessWidget {
   }
 }
 
+Widget _buildDealsList(BuildContext context, List<DocumentSnapshot> snapshots) {
+  return ListView.builder(
+    shrinkWrap: true,
+    itemCount: snapshots.length,
+    physics: ClampingScrollPhysics(),
+    scrollDirection: Axis.vertical,
+    itemBuilder: (context, index) {
+      return FlightCard(
+        flightDetails: FlightDetails.fromSnapshot(snapshots[index]),
+      );
+    },
+  );
+}
+
+class FlightDetails {
+  final String airlines, date, discount, rating;
+  final int oldPrice, newPrice;
+
+  FlightDetails.fromMap(Map<String, dynamic> map)
+      : assert(map['airlines'] != null),
+        assert(map['date'] != null),
+        assert(map['discount'] != null),
+        assert(map['rating'] != null),
+        airlines = map['airlines'],
+        date = map['date'],
+        discount = map['discount'],
+        oldPrice = map['oldPrice'],
+        newPrice = map['newPrice'],
+        rating = map['rating'];
+
+  FlightDetails.fromSnapshot(DocumentSnapshot snapshot)
+      : this.fromMap(snapshot.data);
+}
+
 class FlightCard extends StatelessWidget {
+  final FlightDetails flightDetails;
+
+  FlightCard({this.flightDetails});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -95,7 +145,7 @@ class FlightCard extends StatelessWidget {
                   Row(
                     children: <Widget>[
                       Text(
-                        '${formatCurrency.format(4159)}',
+                        '${formatCurrency.format(flightDetails.newPrice)}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 20.0,
@@ -105,7 +155,7 @@ class FlightCard extends StatelessWidget {
                         width: 4.0,
                       ),
                       Text(
-                        '(${formatCurrency.format(9999)})',
+                        '(${formatCurrency.format(flightDetails.oldPrice)})',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16.0,
@@ -119,9 +169,11 @@ class FlightCard extends StatelessWidget {
                     spacing: 8.0,
                     runSpacing: -8.0,
                     children: <Widget>[
-                      FlightDetailChip(Icons.calendar_today, 'June 2019'),
-                      FlightDetailChip(Icons.flight_takeoff, 'Jet Airways'),
-                      FlightDetailChip(Icons.star, '4.4'),
+                      FlightDetailChip(
+                          Icons.calendar_today, '${flightDetails.date}'),
+                      FlightDetailChip(
+                          Icons.flight_takeoff, '${flightDetails.airlines}'),
+                      FlightDetailChip(Icons.star, '${flightDetails.rating}'),
                     ],
                   ),
                 ],
@@ -134,7 +186,7 @@ class FlightCard extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
               child: Text(
-                '55%',
+                '${flightDetails.discount}%',
                 style: TextStyle(
                   color: appTheme.primaryColor,
                   fontSize: 14.0,
@@ -218,7 +270,7 @@ class FlightListTopPart extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            'Boston (BOS)',
+                            '${InheritedFlightListing.of(context).fromLocation}',
                             style: TextStyle(fontSize: 16.0),
                           ),
                           Divider(
@@ -226,7 +278,7 @@ class FlightListTopPart extends StatelessWidget {
                             height: 20.0,
                           ),
                           Text(
-                            'New York City (JFK)',
+                            '${InheritedFlightListing.of(context).toLocation}',
                             style: TextStyle(
                                 fontSize: 16.0, fontWeight: FontWeight.bold),
                           ),
