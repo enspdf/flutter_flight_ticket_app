@@ -26,6 +26,7 @@ dependencies:
   intl:
   cloud_firestore:
   cached_network_image:
+  rxdart:
 
 dev_dependencies:
   flutter_test:

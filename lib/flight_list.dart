@@ -1,4 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flight_ticket_app/blocs/app_bloc.dart';
+import 'package:flight_ticket_app/blocs/bloc_provider.dart';
+import 'package:flight_ticket_app/blocs/flight_list_bloc.dart';
 import 'package:flight_ticket_app/custom_shape_clipper.dart';
 import 'package:flight_ticket_app/main.dart';
 import 'package:flutter/material.dart';
@@ -26,35 +29,57 @@ class InheritedFlightListing extends InheritedWidget {
 class FlightListingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Search Result'),
-        elevation: 0.0,
-        centerTitle: true,
-        leading: InkWell(
-          child: Icon(Icons.arrow_back),
-          onTap: () {
-            Navigator.pop(context);
-          },
+    return BlocProvider(
+      bloc: FlightListBloc(BlocProvider.of<AppBloc>(context).firebaseService),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Search Result'),
+          elevation: 0.0,
+          centerTitle: true,
+          leading: InkWell(
+            child: Icon(Icons.arrow_back),
+            onTap: () {
+              Navigator.pop(context);
+            },
+          ),
         ),
-      ),
-      body: SingleChildScrollView(
-        scrollDirection: Axis.vertical,
-        child: Column(
-          children: <Widget>[
-            FlightListTopPart(),
-            SizedBox(
-              height: 20.0,
-            ),
-            FlightListingBottomPart(),
-          ],
+        body: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: Column(
+            children: <Widget>[
+              FlightListTopPart(),
+              SizedBox(
+                height: 20.0,
+              ),
+              FlightListingBottomPart(),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class FlightListingBottomPart extends StatelessWidget {
+class FlightListingBottomPart extends StatefulWidget {
+  @override
+  FlightListingBottomPartState createState() => FlightListingBottomPartState();
+}
+
+class FlightListingBottomPartState extends State<FlightListingBottomPart> {
+  FlightListBloc flightListBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    flightListBloc = BlocProvider.of<FlightListBloc>(context);
+  }
+
+  @override
+  void dispose() {
+    flightListBloc.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -73,7 +98,7 @@ class FlightListingBottomPart extends StatelessWidget {
             height: 10.0,
           ),
           StreamBuilder(
-            stream: Firestore.instance.collection('deals').snapshots(),
+            stream: flightListBloc.dealsStream,
             builder: (context, snapshot) {
               return !snapshot.hasData
                   ? Center(child: CircularProgressIndicator())

@@ -1,6 +1,7 @@
+import 'package:flight_ticket_app/main.dart';
 import 'package:flutter/material.dart';
 
-class CustomAppBar extends StatelessWidget {
+class CustomAppBottomBar extends StatelessWidget {
   final List<BottomNavigationBarItem> bottomBarItems = [];
 
   final bottomNavigationBarItemStyle = TextStyle(
@@ -8,11 +9,13 @@ class CustomAppBar extends StatelessWidget {
     color: Colors.black,
   );
 
-  CustomAppBar() {
+  CustomAppBottomBar() {
     bottomBarItems.add(
       BottomNavigationBarItem(
-        icon: Icon(Icons.home, color: Colors.black),
-        title: Text('Explore', style: bottomNavigationBarItemStyle),
+        icon: Icon(Icons.home, color: appTheme.primaryColor),
+        title: Text('Explore',
+            style: bottomNavigationBarItemStyle.copyWith(
+                color: appTheme.primaryColor)),
       ),
     );
     bottomBarItems.add(
@@ -38,7 +41,7 @@ class CustomAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      elevation: 10.0,
+      elevation: 15.0,
       child: BottomNavigationBar(
         items: bottomBarItems,
         type: BottomNavigationBarType.fixed,

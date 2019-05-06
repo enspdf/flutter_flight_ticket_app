@@ -1,60 +1,62 @@
-import 'dart:io';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flight_ticket_app/custom_app_bar.dart';
+import 'package:flight_ticket_app/blocs/app_bloc.dart';
+import 'package:flight_ticket_app/blocs/bloc_provider.dart';
+import 'package:flight_ticket_app/blocs/home_screen_bloc.dart';
+import 'package:flight_ticket_app/custom_app_bottom_bar.dart';
 import 'package:flight_ticket_app/custom_shape_clipper.dart';
 import 'package:flight_ticket_app/flight_list.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 Future<void> main() async {
-  final FirebaseApp app = await FirebaseApp.configure(
-      name: 'flight-app-mock',
-      options: Platform.isIOS
-          ? const FirebaseOptions(
-              googleAppID: '1:963416107699:ios:bbe13d4e61356956',
-              gcmSenderID: '963416107699',
-              databaseURL: 'https://flight-app-mock-84869.firebaseio.com/',
-            )
-          : const FirebaseOptions(
-              googleAppID: '1:963416107699:android:dbfe8b5554a51f10',
-              apiKey: 'AIzaSyCfglVyKGKrp6gOMSZWrRkeli2bZN9JdL8',
-              databaseURL: 'https://flight-app-mock-84869.firebaseio.com/',
-            ));
-
   runApp(
-    MaterialApp(
-      title: 'Flight List Mock Up',
-      debugShowCheckedModeBanner: false,
-      home: HomeScreen(),
-      theme: appTheme,
+    BlocProvider(
+      bloc: AppBloc(),
+      child: MaterialApp(
+        title: 'Flight List Mock Up',
+        debugShowCheckedModeBanner: false,
+        home: BlocProvider(
+          bloc: HomeScreenBloc(),
+          child: HomeScreen(),
+        ),
+      ),
     ),
   );
 }
 
 Color firstColor = Color(0xFFF47D15);
 Color secondColor = Color(0xFFEF772C);
+
 ThemeData appTheme = ThemeData(
   primaryColor: Color(0xFFF3791A),
   fontFamily: 'Oxygen',
 );
 
-List<String> locations = List();
+class HomeScreen extends StatefulWidget {
+  @override
+  HomeScreenState createState() => HomeScreenState();
+}
 
-class HomeScreen extends StatelessWidget {
+class HomeScreenState extends State<HomeScreen> {
+  AppBloc appBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    appBloc = BlocProvider.of<AppBloc>(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: CustomAppBar(),
+      bottomNavigationBar: CustomAppBottomBar(),
       body: SingleChildScrollView(
         scrollDirection: Axis.vertical,
         child: Column(
           children: <Widget>[
             HomeScreenTopPart(),
-            homeScreenBottomPart,
-            homeScreenBottomPart,
+            HomeScreenBottomPart(),
           ],
         ),
       ),
@@ -72,7 +74,7 @@ const TextStyle dropDownMenuItemStyle = TextStyle(
   fontSize: 16.0,
 );
 
-final _searchFieldController = TextEditingController();
+TextEditingController _controller = TextEditingController();
 
 class HomeScreenTopPart extends StatefulWidget {
   @override
@@ -80,8 +82,24 @@ class HomeScreenTopPart extends StatefulWidget {
 }
 
 class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
+  AppBloc appBloc;
+  HomeScreenBloc homeScreenBloc;
   var selectedLocationIndex = 0;
   var isFlightSelected = true;
+
+  @override
+  void initState() {
+    super.initState();
+    appBloc = BlocProvider.of<AppBloc>(context);
+    homeScreenBloc = BlocProvider.of<HomeScreenBloc>(context);
+  }
+
+  @override
+  void dispose() {
+    appBloc.dispose();
+    homeScreenBloc.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,11 +121,8 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
               children: <Widget>[
                 SizedBox(height: 50.0),
                 StreamBuilder(
-                  stream:
-                      Firestore.instance.collection('locations').snapshots(),
+                  stream: appBloc.locationsStream,
                   builder: (context, snapshot) {
-                    if (snapshot.hasData)
-                      addLocations(context, snapshot.data.documents);
                     return !snapshot.hasData
                         ? Container()
                         : Padding(
@@ -121,15 +136,20 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                                 SizedBox(width: 16.0),
                                 PopupMenuButton(
                                   onSelected: (index) {
-                                    setState(() {
-                                      selectedLocationIndex = index;
-                                    });
+                                    appBloc.addFromLocation
+                                        .add(appBloc.locations[index]);
                                   },
                                   child: Row(
                                     children: <Widget>[
-                                      Text(
-                                        locations[0],
-                                        style: dropDownLabelStyle,
+                                      StreamBuilder(
+                                        stream: appBloc.fromLocationStream,
+                                        initialData: appBloc.locations[0],
+                                        builder: (context, snapshot) {
+                                          return Text(
+                                            snapshot.data,
+                                            style: dropDownLabelStyle,
+                                          );
+                                        },
                                       ),
                                       Icon(
                                         Icons.keyboard_arrow_down,
@@ -138,7 +158,7 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                                     ],
                                   ),
                                   itemBuilder: (BuildContext context) =>
-                                      _buildPopupMenuItem(),
+                                      _buildPopupMenuItem(context),
                                 ),
                                 Spacer(),
                                 Icon(
@@ -163,7 +183,10 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                     elevation: 5.0,
                     borderRadius: BorderRadius.all(Radius.circular(30.0)),
                     child: TextField(
-                      controller: _searchFieldController,
+                      controller: _controller,
+                      onChanged: (text) {
+                        appBloc.addToLocation.add(text);
+                      },
                       style: dropDownMenuItemStyle,
                       cursorColor: appTheme.primaryColor,
                       decoration: InputDecoration(
@@ -177,16 +200,15 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                           child: InkWell(
                             onTap: () {
                               Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => InheritedFlightListing(
-                                        fromLocation:
-                                            locations[selectedLocationIndex],
-                                        toLocation: _searchFieldController.text,
-                                        child: FlightListingScreen(),
-                                      ),
-                                ),
-                              );
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          InheritedFlightListing(
+                                            fromLocation: appBloc.locations[
+                                                selectedLocationIndex],
+                                            toLocation: _controller.text,
+                                            child: FlightListingScreen(),
+                                          )));
                             },
                             child: Icon(Icons.search, color: Colors.black),
                           ),
@@ -210,24 +232,25 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                         isSelected: isFlightSelected,
                       ),
                       onTap: () {
-                        setState(() {
-                          isFlightSelected = true;
-                        });
+                        homeScreenBloc.updateFlightSelection(true);
                       },
                     ),
                     SizedBox(
                       width: 20.0,
                     ),
                     InkWell(
-                      child: ChoiceChip(
-                        icon: Icons.hotel,
-                        text: 'Hotels',
-                        isSelected: !isFlightSelected,
-                      ),
+                      child: StreamBuilder(
+                          stream: homeScreenBloc.isFlightSelectedStream,
+                          initialData: true,
+                          builder: (context, snapshot) {
+                            return ChoiceChip(
+                              icon: Icons.hotel,
+                              text: 'Hotels',
+                              isSelected: !snapshot.data,
+                            );
+                          }),
                       onTap: () {
-                        setState(() {
-                          isFlightSelected = false;
-                        });
+                        homeScreenBloc.updateFlightSelection(false);
                       },
                     ),
                   ],
@@ -241,13 +264,14 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
   }
 }
 
-List<PopupMenuItem<int>> _buildPopupMenuItem() {
+List<PopupMenuItem<int>> _buildPopupMenuItem(context) {
+  final AppBloc appBloc = BlocProvider.of<AppBloc>(context);
   List<PopupMenuItem<int>> popupMenuItems = List();
 
-  for (int i = 0; i < locations.length; i++) {
+  for (int i = 0; i < appBloc.locations.length; i++) {
     popupMenuItems.add(PopupMenuItem(
       child: Text(
-        locations[i],
+        appBloc.locations[i],
         style: dropDownMenuItemStyle,
       ),
       value: i,
@@ -255,13 +279,6 @@ List<PopupMenuItem<int>> _buildPopupMenuItem() {
   }
 
   return popupMenuItems;
-}
-
-addLocations(BuildContext context, List<DocumentSnapshot> snapshots) {
-  for (int i = 0; i < snapshots.length; i++) {
-    final Location location = Location.fromSnapshot(snapshots[i]);
-    locations.add(location.name);
-  }
 }
 
 class ChoiceChip extends StatefulWidget {
@@ -311,44 +328,62 @@ class _ChoiceChipState extends State<ChoiceChip> {
 
 var viewAllStyle = TextStyle(fontSize: 14.0, color: appTheme.primaryColor);
 
-var homeScreenBottomPart = Column(
-  children: <Widget>[
-    Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-      child: Row(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          Text(
-            'Currently Watched Items',
-            style: dropDownMenuItemStyle,
+class HomeScreenBottomPart extends StatefulWidget {
+  @override
+  _HomeScreenBottomPartState createState() => _HomeScreenBottomPartState();
+}
+
+class _HomeScreenBottomPartState extends State<HomeScreenBottomPart> {
+  AppBloc appBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    appBloc = BlocProvider.of<AppBloc>(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Text(
+                'Currently Watched Items',
+                style: dropDownMenuItemStyle,
+              ),
+              Spacer(),
+              Text(
+                'VIEW ALL(12)',
+                style: viewAllStyle,
+              ),
+            ],
           ),
-          Spacer(),
-          Text(
-            'VIEW ALL(12)',
-            style: viewAllStyle,
+        ),
+        Container(
+          height: 240.0,
+          child: StreamBuilder(
+            stream: Firestore.instance
+                .collection('cities')
+                .orderBy('newPrice')
+                .snapshots(),
+            builder: (context, snapshot) {
+              return !snapshot.hasData
+                  ? Center(
+                      child: CircularProgressIndicator(),
+                    )
+                  : _buildCitiesList(context, snapshot.data.documents);
+            },
           ),
-        ],
-      ),
-    ),
-    Container(
-      height: 240.0,
-      child: StreamBuilder(
-        stream: Firestore.instance
-            .collection('cities')
-            .orderBy('newPrice')
-            .snapshots(),
-        builder: (context, snapshot) {
-          return !snapshot.hasData
-              ? Center(
-                  child: CircularProgressIndicator(),
-                )
-              : _buildCitiesList(context, snapshot.data.documents);
-        },
-      ),
-    ),
-  ],
-);
+        ),
+      ],
+    );
+  }
+}
 
 Widget _buildCitiesList(
     BuildContext context, List<DocumentSnapshot> snapshots) {
@@ -403,9 +438,13 @@ class CityCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
           ClipRRect(
-            borderRadius: BorderRadius.all(Radius.circular(10.0)),
+            borderRadius: BorderRadius.all(
+              Radius.circular(10.0),
+            ),
             child: Stack(
               children: <Widget>[
                 Container(
@@ -469,9 +508,7 @@ class CityCard extends StatelessWidget {
                       ),
                       Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: 6.0,
-                          vertical: 2.0,
-                        ),
+                            horizontal: 6.0, vertical: 2.0),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.rectangle,
@@ -489,7 +526,7 @@ class CityCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                ),
+                )
               ],
             ),
           ),
@@ -512,7 +549,7 @@ class CityCard extends StatelessWidget {
                 width: 5.0,
               ),
               Text(
-                '(${formatCurrency.format(city.oldPrice)})',
+                "(${formatCurrency.format(city.oldPrice)})",
                 style: TextStyle(
                   color: Colors.grey,
                   fontWeight: FontWeight.normal,
@@ -520,7 +557,7 @@ class CityCard extends StatelessWidget {
                 ),
               ),
             ],
-          ),
+          )
         ],
       ),
     );
