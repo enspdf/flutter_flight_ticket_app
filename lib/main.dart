@@ -10,32 +10,31 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 Future<void> main() async {
-  runApp(
-    BlocProvider(
-      bloc: AppBloc(),
-      child: MaterialApp(
-        title: 'Flight List Mock Up',
-        debugShowCheckedModeBanner: false,
-        home: BlocProvider(
-          bloc: HomeScreenBloc(),
-          child: HomeScreen(),
-        ),
+  runApp(BlocProvider(
+    bloc: AppBloc(),
+    child: MaterialApp(
+      title: 'Flight List Mock Up',
+      debugShowCheckedModeBanner: false,
+      home: BlocProvider(
+        bloc: HomeScreenBloc(),
+        child: HomeScreen(),
       ),
+      theme: appTheme,
     ),
-  );
+  ));
 }
 
 Color firstColor = Color(0xFFF47D15);
 Color secondColor = Color(0xFFEF772C);
 
-ThemeData appTheme = ThemeData(
-  primaryColor: Color(0xFFF3791A),
-  fontFamily: 'Oxygen',
-);
+ThemeData appTheme =
+    ThemeData(primaryColor: Color(0xFFF3791A), fontFamily: 'Oxygen');
 
 class HomeScreen extends StatefulWidget {
   @override
-  HomeScreenState createState() => HomeScreenState();
+  HomeScreenState createState() {
+    return new HomeScreenState();
+  }
 }
 
 class HomeScreenState extends State<HomeScreen> {
@@ -64,17 +63,10 @@ class HomeScreenState extends State<HomeScreen> {
   }
 }
 
-const TextStyle dropDownLabelStyle = TextStyle(
-  color: Colors.white,
-  fontSize: 16.0,
-);
-
-const TextStyle dropDownMenuItemStyle = TextStyle(
-  color: Colors.black,
-  fontSize: 16.0,
-);
-
-TextEditingController _controller = TextEditingController();
+const TextStyle dropDownLabelStyle =
+    TextStyle(color: Colors.white, fontSize: 16.0);
+const TextStyle dropDownMenuItemStyle =
+    TextStyle(color: Colors.black, fontSize: 16.0);
 
 class HomeScreenTopPart extends StatefulWidget {
   @override
@@ -108,18 +100,17 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
         ClipPath(
           clipper: CustomShapeClipper(),
           child: Container(
-            height: 400,
+            height: 400.0,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  firstColor,
-                  secondColor,
-                ],
+                colors: [firstColor, secondColor],
               ),
             ),
             child: Column(
               children: <Widget>[
-                SizedBox(height: 50.0),
+                SizedBox(
+                  height: 50.0,
+                ),
                 StreamBuilder(
                   stream: appBloc.locationsStream,
                   builder: (context, snapshot) {
@@ -133,7 +124,9 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                                   Icons.location_on,
                                   color: Colors.white,
                                 ),
-                                SizedBox(width: 16.0),
+                                SizedBox(
+                                  width: 16.0,
+                                ),
                                 PopupMenuButton(
                                   onSelected: (index) {
                                     appBloc.addFromLocation
@@ -154,7 +147,7 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                                       Icon(
                                         Icons.keyboard_arrow_down,
                                         color: Colors.white,
-                                      ),
+                                      )
                                     ],
                                   ),
                                   itemBuilder: (BuildContext context) =>
@@ -170,20 +163,28 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                           );
                   },
                 ),
-                SizedBox(height: 50.0),
+                SizedBox(
+                  height: 50.0,
+                ),
                 Text(
-                  'Where would\nyou want to go?',
-                  style: TextStyle(fontSize: 24.0, color: Colors.white),
+                  'Where would you\nlike to go?',
+                  style: TextStyle(
+                    fontSize: 24.0,
+                    color: Colors.white,
+                  ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 30.0),
+                SizedBox(
+                  height: 30.0,
+                ),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 32.0),
                   child: Material(
                     elevation: 5.0,
-                    borderRadius: BorderRadius.all(Radius.circular(30.0)),
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(30.0),
+                    ),
                     child: TextField(
-                      controller: _controller,
                       onChanged: (text) {
                         appBloc.addToLocation.add(text);
                       },
@@ -191,12 +192,12 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                       cursorColor: appTheme.primaryColor,
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 32.0,
-                          vertical: 14.0,
-                        ),
+                            horizontal: 32.0, vertical: 14.0),
                         suffixIcon: Material(
                           elevation: 2.0,
-                          borderRadius: BorderRadius.all(Radius.circular(30.0)),
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(30.0),
+                          ),
                           child: InkWell(
                             onTap: () {
                               Navigator.push(
@@ -204,13 +205,13 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                                   MaterialPageRoute(
                                       builder: (context) =>
                                           InheritedFlightListing(
-                                            fromLocation: appBloc.locations[
-                                                selectedLocationIndex],
-                                            toLocation: _controller.text,
                                             child: FlightListingScreen(),
                                           )));
                             },
-                            child: Icon(Icons.search, color: Colors.black),
+                            child: Icon(
+                              Icons.search,
+                              color: Colors.black,
+                            ),
                           ),
                         ),
                         border: InputBorder.none,
@@ -226,10 +227,13 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: <Widget>[
                     InkWell(
-                      child: ChoiceChip(
-                        icon: Icons.flight_takeoff,
-                        text: 'Flights',
-                        isSelected: isFlightSelected,
+                      child: StreamBuilder(
+                        stream: homeScreenBloc.isFlightSelectedStream,
+                        initialData: true,
+                        builder: (context, snapshot) {
+                          return ChoiceChip(
+                              Icons.flight_takeoff, "Flights", snapshot.data);
+                        },
                       ),
                       onTap: () {
                         homeScreenBloc.updateFlightSelection(true);
@@ -240,25 +244,24 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                     ),
                     InkWell(
                       child: StreamBuilder(
-                          stream: homeScreenBloc.isFlightSelectedStream,
-                          initialData: true,
-                          builder: (context, snapshot) {
-                            return ChoiceChip(
-                              icon: Icons.hotel,
-                              text: 'Hotels',
-                              isSelected: !snapshot.data,
-                            );
-                          }),
+                        stream: homeScreenBloc.isFlightSelectedStream,
+                        initialData: true,
+                        builder: (context, snapshot) {
+                          print('in hotel - ${!snapshot.data}');
+                          return ChoiceChip(
+                              Icons.hotel, "Hotels", !snapshot.data);
+                        },
+                      ),
                       onTap: () {
                         homeScreenBloc.updateFlightSelection(false);
                       },
                     ),
                   ],
-                ),
+                )
               ],
             ),
           ),
-        ),
+        )
       ],
     );
   }
@@ -267,7 +270,6 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
 List<PopupMenuItem<int>> _buildPopupMenuItem(context) {
   final AppBloc appBloc = BlocProvider.of<AppBloc>(context);
   List<PopupMenuItem<int>> popupMenuItems = List();
-
   for (int i = 0; i < appBloc.locations.length; i++) {
     popupMenuItems.add(PopupMenuItem(
       child: Text(
@@ -286,7 +288,7 @@ class ChoiceChip extends StatefulWidget {
   final String text;
   final bool isSelected;
 
-  ChoiceChip({this.icon, this.text, this.isSelected});
+  ChoiceChip(this.icon, this.text, this.isSelected);
 
   @override
   _ChoiceChipState createState() => _ChoiceChipState();
@@ -300,10 +302,14 @@ class _ChoiceChipState extends State<ChoiceChip> {
       decoration: widget.isSelected
           ? BoxDecoration(
               color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.all(Radius.circular(20.0)),
+              borderRadius: BorderRadius.all(
+                Radius.circular(20.0),
+              ),
             )
           : null,
       child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
           Icon(
             widget.icon,
@@ -319,7 +325,7 @@ class _ChoiceChipState extends State<ChoiceChip> {
               color: Colors.white,
               fontSize: 16.0,
             ),
-          ),
+          )
         ],
       ),
     );
@@ -330,10 +336,12 @@ var viewAllStyle = TextStyle(fontSize: 14.0, color: appTheme.primaryColor);
 
 class HomeScreenBottomPart extends StatefulWidget {
   @override
-  _HomeScreenBottomPartState createState() => _HomeScreenBottomPartState();
+  HomeScreenBottomPartState createState() {
+    return new HomeScreenBottomPartState();
+  }
 }
 
-class _HomeScreenBottomPartState extends State<HomeScreenBottomPart> {
+class HomeScreenBottomPartState extends State<HomeScreenBottomPart> {
   AppBloc appBloc;
 
   @override
@@ -353,13 +361,18 @@ class _HomeScreenBottomPartState extends State<HomeScreenBottomPart> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               Text(
-                'Currently Watched Items',
+                "Currently Watched Items",
                 style: dropDownMenuItemStyle,
               ),
               Spacer(),
-              Text(
-                'VIEW ALL(12)',
-                style: viewAllStyle,
+              StreamBuilder(
+                stream: appBloc.citiesCounterStream,
+                builder: (context, snapshot) {
+                  return Text(
+                    "VIEW ALL(${snapshot.data})",
+                    style: viewAllStyle,
+                  );
+                },
               ),
             ],
           ),
@@ -367,18 +380,12 @@ class _HomeScreenBottomPartState extends State<HomeScreenBottomPart> {
         Container(
           height: 240.0,
           child: StreamBuilder(
-            stream: Firestore.instance
-                .collection('cities')
-                .orderBy('newPrice')
-                .snapshots(),
-            builder: (context, snapshot) {
-              return !snapshot.hasData
-                  ? Center(
-                      child: CircularProgressIndicator(),
-                    )
-                  : _buildCitiesList(context, snapshot.data.documents);
-            },
-          ),
+              stream: appBloc.citiesSnapshotStream,
+              builder: (context, snapshot) {
+                return !snapshot.hasData
+                    ? Center(child: CircularProgressIndicator())
+                    : _buildCitiesList(context, snapshot.data.documents);
+              }),
         ),
       ],
     );
@@ -388,12 +395,11 @@ class _HomeScreenBottomPartState extends State<HomeScreenBottomPart> {
 Widget _buildCitiesList(
     BuildContext context, List<DocumentSnapshot> snapshots) {
   return ListView.builder(
-    itemCount: snapshots.length,
-    scrollDirection: Axis.horizontal,
-    itemBuilder: (context, index) {
-      return CityCard(city: City.fromSnapshot(snapshots[index]));
-    },
-  );
+      itemCount: snapshots.length,
+      scrollDirection: Axis.horizontal,
+      itemBuilder: (context, index) {
+        return CityCard(city: City.fromSnapshot(snapshots[index]));
+      });
 }
 
 class Location {

@@ -259,6 +259,8 @@ class FlightDetailChip extends StatelessWidget {
 class FlightListTopPart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    AppBloc appBloc = BlocProvider.of<AppBloc>(context);
+
     return Stack(
       children: <Widget>[
         ClipPath(
@@ -295,7 +297,7 @@ class FlightListTopPart extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            '${InheritedFlightListing.of(context).fromLocation}',
+                            '${appBloc.fromLocation}',
                             style: TextStyle(fontSize: 16.0),
                           ),
                           Divider(
@@ -303,7 +305,7 @@ class FlightListTopPart extends StatelessWidget {
                             height: 20.0,
                           ),
                           Text(
-                            '${InheritedFlightListing.of(context).toLocation}',
+                            '${appBloc.toLocation}',
                             style: TextStyle(
                                 fontSize: 16.0, fontWeight: FontWeight.bold),
                           ),
